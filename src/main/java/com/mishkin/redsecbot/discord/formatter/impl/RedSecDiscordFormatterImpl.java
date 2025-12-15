@@ -66,10 +66,10 @@ public class RedSecDiscordFormatterImpl implements RedSecDiscordFormatter {
     private String formatMode(RedSecModeStats stats) {
         return String.format("""
                 🕹 Matches: %d
-                🏆 Wins: %d (%.1f%%)
+                🏆 Wins: %d
                 🔫 K/D: %.2f
                 ⏱ Time: %s
-                """, stats.matchesPlayed(), stats.matchesWon(), stats.winRate(), stats.kd(), formatDuration(stats.timePlayed()));
+                """, stats.matchesPlayed(), stats.matchesWon(), stats.kd(), formatDuration(stats.timePlayed()));
     }
 
     private String formatDuration(Duration duration) {

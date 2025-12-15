@@ -5,12 +5,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.Clock;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * @author a.mishkin
@@ -35,9 +34,27 @@ public class BeanConfiguration {
                 .build();
     }
 
+    /**
+     * Bug 1 DevTools вызывает executor.shutdown(), но НО старые listener’ы / JDA callbacks ещё живы
+     * они пытаются отправить задачу в СТАРЫЙ executor
+     * нужен не ExecutorService, а ThreadPoolTaskExecutor, т.к.
+     * Spring НЕ закрывает его неожиданно
+     * корректно пересоздаётся
+     * интегрирован с lifecycle
+     * переживает devtools
+     * @return
+     */
     @Bean
-    public ExecutorService commandExecutor() {
-        return Executors.newFixedThreadPool(8);
+    public ThreadPoolTaskExecutor discordCommandExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(8);
+        executor.setMaxPoolSize(8);
+        executor.setQueueCapacity(100);
+        executor.setThreadNamePrefix("command-");
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(5);
+        executor.initialize();
+        return executor;
     }
 
     @Bean
