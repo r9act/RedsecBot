@@ -19,6 +19,10 @@ import java.util.*;
 public class RedSecExtractorImpl implements RedSecExtractor {
 
     private static final String SOURCE = "TRACKER_GG";
+    private static final Double AVG_DEATHS_GAUNTLET = 10d;
+    private static final Double AVG_DEATHS_DUOS = 2d;
+    private static final Double AVG_DEATHS_QUADS = 2.2d;
+    private static final Double AVG_DEATHS_TOTAL = 3.1d;
 
     @Override
     public Optional<RedSecStats> extract(TrackerProfileResponseDto profile) {
@@ -109,8 +113,15 @@ public class RedSecExtractorImpl implements RedSecExtractor {
         double winRate = doubleVal(stats, "winPercentage");
         int kills = intVal(stats, "kills");
         int deaths = intVal(stats, "deaths");
+        double kd = switch (segment.attributes().key()) {
+            case "gm_graniteDuo" -> kills / (AVG_DEATHS_DUOS * matchesPlayed);
+            case "gm_brsquad" -> kills / (AVG_DEATHS_QUADS * matchesPlayed);
+            case "gm_gntgauntlet" -> kills / (AVG_DEATHS_GAUNTLET * matchesPlayed);
+            case "gm_granite" -> kills / (AVG_DEATHS_TOTAL * matchesPlayed);
+            default -> 0.0d;
+        };
 
-        double kd = deaths == 0 ? kills : (double) kills / deaths;
+        //double kd = deaths == 0 ? kills : (double) kills / deaths;
 
         Duration timePlayed = Duration.ofSeconds(longVal(stats, "timePlayed"));
 

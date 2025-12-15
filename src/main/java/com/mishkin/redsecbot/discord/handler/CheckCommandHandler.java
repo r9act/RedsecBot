@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 
 /**
  * @author a.mishkin
@@ -26,9 +26,9 @@ public class CheckCommandHandler {
     private final PlayerStatsHistoryService statsHistoryService;
     private final RedSecDiscordFormatter formatter;
     private final PlayerSelectionStore selectionStore;
-    private final ExecutorService executor;
+    private final Executor executor;
 
-    public CheckCommandHandler(TrackerGGPlayerSearchClient searchClient, PlayerStatsHistoryService statsHistoryService, RedSecDiscordFormatter formatter, PlayerSelectionStore selectionStore, ExecutorService executor) {
+    public CheckCommandHandler(TrackerGGPlayerSearchClient searchClient, PlayerStatsHistoryService statsHistoryService, RedSecDiscordFormatter formatter, PlayerSelectionStore selectionStore, Executor executor) {
         this.searchClient = searchClient;
         this.statsHistoryService = statsHistoryService;
         this.formatter = formatter;

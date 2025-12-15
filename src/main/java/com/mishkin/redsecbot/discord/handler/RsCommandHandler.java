@@ -8,11 +8,12 @@ import com.mishkin.redsecbot.domain.model.RedSecStats;
 import com.mishkin.redsecbot.infrastructure.postgres.entity.UserMappingEntity;
 import com.mishkin.redsecbot.infrastructure.tracker.client.TrackerGGPlayerSearchClient;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 
 /**
  * @author a.mishkin
@@ -23,15 +24,11 @@ public class RsCommandHandler {
     private final RedSecStatsFacade statsFacade;
     private final UserMappingService userMappingService;
     private final RedSecDiscordFormatter formatter;
-    private final ExecutorService executor;
-    private final TrackerGGPlayerSearchClient searchClient;
+    @Qualifier("discordCommandExecutor")
+    private final Executor executor;
 
-    public RsCommandHandler(
-            RedSecStatsFacade statsFacade,
-            UserMappingService userMappingService,
-            RedSecDiscordFormatter formatter,
-            ExecutorService executor, TrackerGGPlayerSearchClient searchClient
-    ) {
+    public RsCommandHandler(RedSecStatsFacade statsFacade, UserMappingService userMappingService,
+                            RedSecDiscordFormatter formatter, Executor executor, TrackerGGPlayerSearchClient searchClient) {
         this.statsFacade = statsFacade;
         this.userMappingService = userMappingService;
         this.formatter = formatter;

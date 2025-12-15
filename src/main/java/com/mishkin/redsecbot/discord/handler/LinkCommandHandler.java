@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 
 /**
  * @author a.mishkin
@@ -21,14 +21,10 @@ public class LinkCommandHandler {
     private final TrackerGGPlayerSearchClient searchClient;
     private final UserMappingService userMappingService;
     private final PlayerSelectionStore selectionStore;
-    private final ExecutorService executor;
+    private final Executor executor;
 
-    public LinkCommandHandler(
-            TrackerGGPlayerSearchClient searchClient,
-            UserMappingService userMappingService,
-            PlayerSelectionStore selectionStore,
-            ExecutorService executor
-    ) {
+    public LinkCommandHandler(TrackerGGPlayerSearchClient searchClient, UserMappingService userMappingService,
+                              PlayerSelectionStore selectionStore, Executor executor) {
         this.searchClient = searchClient;
         this.userMappingService = userMappingService;
         this.selectionStore = selectionStore;
@@ -37,7 +33,7 @@ public class LinkCommandHandler {
 
     public void handle(SlashCommandInteractionEvent event) {
 
-        event.deferReply(true).queue(); // ephemeral
+        event.deferReply(true).queue();
 
         long discordId = event.getUser().getIdLong();
         String bfName = event.getOption("name").getAsString();

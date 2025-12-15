@@ -41,7 +41,7 @@ public class PlayerStatsHistoryServiceImpl implements PlayerStatsHistoryService 
     }
 
     /**
-     * Чтобы не ддсить tracker ходим туда не чаще, раз в 3 часа (на пользователя).
+     * Чтобы не ддсить tracker ходим туда не чаще, чем раз в 3 часа (на пользователя).
      * Для этого храним в касандре историю все запросов с временной меткой
      * @param playerKey discord:123123123 - для подписанных (/rs), bf:steam:123123123 - для /check команды
      * @param platformSlug для нового запроса по API (steam, origin...)
