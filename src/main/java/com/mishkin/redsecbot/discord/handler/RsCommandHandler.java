@@ -28,12 +28,11 @@ public class RsCommandHandler {
     private final Executor executor;
 
     public RsCommandHandler(RedSecStatsFacade statsFacade, UserMappingService userMappingService,
-                            RedSecDiscordFormatter formatter, Executor executor, TrackerGGPlayerSearchClient searchClient) {
+                            RedSecDiscordFormatter formatter, Executor executor) {
         this.statsFacade = statsFacade;
         this.userMappingService = userMappingService;
         this.formatter = formatter;
         this.executor = executor;
-        this.searchClient = searchClient;
     }
 
     public void handle(SlashCommandInteractionEvent event) {
