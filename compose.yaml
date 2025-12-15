@@ -1,0 +1,109 @@
+version: "3.9"
+
+networks:
+  bfbot-net:
+
+services:
+
+  postgres:
+    image: postgres:16
+    container_name: bfbot-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: bfbot
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - bfbot-net
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: bfbot-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - bfbot-net
+
+  cassandra:
+    image: cassandra:4.1
+    container_name: bfbot-cassandra
+    restart: unless-stopped
+    environment:
+      CASSANDRA_CLUSTER_NAME: "bfbot-cluster"
+      CASSANDRA_NUM_TOKENS: 16
+    ports:
+      - "9042:9042"
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+      - ./cassandra/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'describe keyspaces'"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+    networks:
+      - bfbot-net
+
+  cassandra-web:
+    image: ipushc/cassandra-web
+    container_name: bfbot-cassandra-web
+    restart: unless-stopped
+    environment:
+      CASSANDRA_HOST: cassandra
+      CASSANDRA_PORT: 9042
+    ports:
+      - "3000:3000"
+    depends_on:
+      cassandra:
+        condition: service_healthy
+    networks:
+      - bfbot-net
+
+  app:
+    build: .
+    container_name: bfbot-app
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+
+      # Discord
+      DISCORD_TOKEN: ${DISCORD_TOKEN}
+      DISCORD_GUILD_ID: ${DISCORD_GUILD_ID}
+
+      # Postgres
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bfbot
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+
+      # Cassandra
+      SPRING_DATA_CASSANDRA_CONTACT_POINTS: cassandra
+      SPRING_DATA_CASSANDRA_KEYSPACE_NAME: bfbot
+      SPRING_DATA_CASSANDRA_LOCAL_DATACENTER: datacenter1
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      cassandra:
+        condition: service_healthy
+    networks:
+      - bfbot-net
+
+volumes:
+  postgres_data:
+  cassandra_data:

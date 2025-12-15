@@ -1,0 +1,40 @@
+spring:
+  docker:
+    compose:
+      enabled: false
+
+  profiles:
+    active: dev
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/bfbot
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate.format_sql: true
+      hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  liquibase:
+    change-log: classpath:/db/changelog/db.changelog-master.yaml
+
+  data:
+    cassandra:
+      contact-points: localhost
+      port: 9042
+      keyspace-name: bfbot
+      local-datacenter: datacenter1
+      schema-action: none
+
+logging:
+  level:
+    liquibase: DEBUG
+
+discord:
+  token: ${DISCORD_TOKEN}
+  guild-id: ${DISCORD_GUILD_ID}

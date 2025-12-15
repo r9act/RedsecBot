@@ -1,0 +1,89 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-discord-user-mapping
+      author: you
+      changes:
+        - createTable:
+            tableName: discord_user_mapping
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: discord_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    unique: true
+
+              - column:
+                  name: game
+                  type: VARCHAR(32)
+                  defaultValue: BF6
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: platform_id
+                  type: INT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: platform_slug
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: platform_user_identifier
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: platform_user_handle
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: title_user_id
+                  type: VARCHAR(64)
+
+              - column:
+                  name: country_code
+                  type: VARCHAR(8)
+
+              - column:
+                  name: rank
+                  type: INT
+
+              - column:
+                  name: status
+                  type: VARCHAR(128)
+
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            tableName: discord_user_mapping
+            indexName: idx_user_mapping_platform_identifier
+            columns:
+              - column:
+                  name: platform_user_identifier
