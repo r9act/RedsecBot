@@ -6,12 +6,14 @@ import com.mishkin.redsecbot.application.facade.RedSecStatsFacade;
 import com.mishkin.redsecbot.discord.utils.ExceptionUtils;
 import com.mishkin.redsecbot.domain.model.RedSecStats;
 import com.mishkin.redsecbot.infrastructure.postgres.entity.UserMappingEntity;
-import com.mishkin.redsecbot.infrastructure.tracker.client.TrackerGGPlayerSearchClient;
+import com.mishkin.redsecbot.enricherApi.in.DiscordReplyRegistry;
+import com.mishkin.redsecbot.enricherApi.out.StatsPipeline;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
@@ -26,13 +28,17 @@ public class RsCommandHandler {
     private final RedSecDiscordFormatter formatter;
     @Qualifier("discordCommandExecutor")
     private final Executor executor;
+    private final StatsPipeline statsPipeline;
+    private final DiscordReplyRegistry replyRegistry;
 
     public RsCommandHandler(RedSecStatsFacade statsFacade, UserMappingService userMappingService,
-                            RedSecDiscordFormatter formatter, Executor executor) {
+                            RedSecDiscordFormatter formatter, Executor executor, StatsPipeline statsPipeline, DiscordReplyRegistry replyRegistry) {
         this.statsFacade = statsFacade;
         this.userMappingService = userMappingService;
         this.formatter = formatter;
         this.executor = executor;
+        this.statsPipeline = statsPipeline;
+        this.replyRegistry = replyRegistry;
     }
 
     public void handle(SlashCommandInteractionEvent event) {
@@ -52,6 +58,10 @@ public class RsCommandHandler {
                                 .queue();
                         return;
                     }
+
+                    String correlationId = String.valueOf(UUID.randomUUID());
+                    replyRegistry.register(correlationId, event.getHook());
+                    statsPipeline.onStatsReady(statsOpt.get(), correlationId);
 
                     event.getHook()
                             .sendMessageEmbeds(
