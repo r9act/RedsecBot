@@ -6,6 +6,8 @@ import com.mishkin.redsecbot.discord.utils.ExceptionUtils;
 import com.mishkin.redsecbot.domain.model.RedSecStats;
 import com.mishkin.redsecbot.infrastructure.tracker.dto.in.player.TrackerSearchResultApiDto;
 import com.mishkin.redsecbot.infrastructure.tracker.client.TrackerGGPlayerSearchClient;
+import com.mishkin.redsecbot.enricherApi.in.DiscordReplyRegistry;
+import com.mishkin.redsecbot.enricherApi.out.StatsPipeline;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
@@ -27,19 +30,22 @@ public class CheckCommandHandler {
     private final RedSecDiscordFormatter formatter;
     private final PlayerSelectionStore selectionStore;
     private final Executor executor;
+    private final StatsPipeline statsPipeline;
+    private final DiscordReplyRegistry replyRegistry;
 
-    public CheckCommandHandler(TrackerGGPlayerSearchClient searchClient, PlayerStatsHistoryService statsHistoryService, RedSecDiscordFormatter formatter, PlayerSelectionStore selectionStore, Executor executor) {
+    public CheckCommandHandler(TrackerGGPlayerSearchClient searchClient, PlayerStatsHistoryService statsHistoryService, RedSecDiscordFormatter formatter, PlayerSelectionStore selectionStore, Executor executor, StatsPipeline statsPipeline, DiscordReplyRegistry replyRegistry) {
         this.searchClient = searchClient;
         this.statsHistoryService = statsHistoryService;
         this.formatter = formatter;
         this.selectionStore = selectionStore;
         this.executor = executor;
+        this.statsPipeline = statsPipeline;
+        this.replyRegistry = replyRegistry;
     }
 
     public void handle(SlashCommandInteractionEvent event) {
 
         event.deferReply().queue();
-
         String bfName = event.getOption("name").getAsString();
         String platform = event.getOption("platform").getAsString();
         long discordId = event.getUser().getIdLong();
@@ -79,6 +85,9 @@ public class CheckCommandHandler {
                                             .queue();
                                     return;
                                 }
+                                String correlationId = String.valueOf(UUID.randomUUID());
+                                replyRegistry.register(correlationId, event.getHook());
+                                statsPipeline.onStatsReady(statsOpt.get(), correlationId);
 
                                 event.getHook()
                                         .sendMessageEmbeds(formatter.format(statsOpt.get()))

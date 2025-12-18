@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Игнорируем файлы конфигурации
+src/main/resources/candidates.yaml
+#.env
