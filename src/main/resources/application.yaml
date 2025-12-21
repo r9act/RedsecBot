@@ -52,6 +52,11 @@ spring:
       local-datacenter: datacenter1
       schema-action: none
 
+  data:
+    redis:
+      host: redis
+      port: 6379
+
 logging:
   level:
     liquibase: DEBUG
