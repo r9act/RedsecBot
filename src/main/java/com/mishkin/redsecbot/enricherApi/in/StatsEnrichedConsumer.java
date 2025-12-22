@@ -27,17 +27,18 @@ public class StatsEnrichedConsumer {
         }
 
         var hookOpt = registry.take(event.correlationId());
+        if (hookOpt.isEmpty()) {
+            return;
+        }
 
-        hookOpt.ifPresent(hook ->
-                hook.sendMessage(event.text())
-                        .queue(
-                                success -> log.info("Discord message sent"),
-                                error -> log.error("Discord send failed", error)
-                        )
-        );
-
-        registry.take(event.correlationId())
-                .ifPresent(hook -> hook.sendMessage(event.text()).queue());
+        try {
+            hookOpt.get()
+                    .sendMessage(event.text())
+                    .complete(); // БЛОКИРУЕМСЯ осознанно (вместо асинхронного .queue()) -> ловим exception
+        } catch (Exception e) {
+            log.error("Discord send failed", e);
+            throw e; // даём Kafka увидеть ошибку
+        }
     }
 }
 

@@ -6,7 +6,7 @@ import java.time.Instant;
  * Событие для отправки в N-сервис
  * @author a.mishkin
  */
-public record StatsReadyEvent(
+public record StatsReadyV1(
         String correlationId,
         String platformUserHandle,
         Instant occurredAt
