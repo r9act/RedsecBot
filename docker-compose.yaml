@@ -10,6 +10,67 @@ volumes:
 services:
 
   # =========================
+  # Prometheus
+  # =========================
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: bfbot-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yaml"
+    ports:
+      - "9090:9090"
+    networks:
+      - bfbot-net
+
+  # =========================
+  # Grafana
+  # =========================
+  grafana:
+    image: grafana/grafana:10.4.3
+    container_name: bfbot-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    networks:
+      - bfbot-net
+
+  # =========================
+  # Loki
+  # =========================
+  loki:
+    image: grafana/loki:2.9.3
+    container_name: bfbot-loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
+    command:
+      - "--config.file=/etc/loki/local-config.yaml"
+    networks:
+      - bfbot-net
+
+  # =========================
+  # Promtail
+  # =========================
+  promtail:
+    image: grafana/promtail:2.9.3
+    container_name: bfbot-promtail
+    restart: unless-stopped
+    volumes:
+      - ./promtail/promtail-config.yaml:/etc/promtail/promtail-config.yaml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command:
+      - "--config.file=/etc/promtail/promtail-config.yaml"
+    depends_on:
+      - loki
+    networks:
+      - bfbot-net
+
+  # =========================
   # Redis (Dedup / Idempotency)
   # =========================
   redis:
@@ -45,6 +106,11 @@ services:
       KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
     networks:
       - bfbot-net
+    healthcheck:
+      test: [ "CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
 
   # =========================
   # PostgreSQL
