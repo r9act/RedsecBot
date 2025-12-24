@@ -1,0 +1,23 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://bfbot-loki:3100/loki/api/v1/push
+    batchwait: 5s
+    batchsize: 512000
+
+scrape_configs:
+  - job_name: docker
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: docker
+          __path__: /var/lib/docker/containers/540ab3e0f411b4ab3f667f8916abe7aa9457a57cec43cbb156f7ccdebd25e907/*.log
+    pipeline_stages:
+      - docker: {}
+      - drop:
+          older_than: 30m

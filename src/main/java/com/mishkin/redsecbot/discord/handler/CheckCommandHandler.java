@@ -1,16 +1,17 @@
 package com.mishkin.redsecbot.discord.handler;
 
+import com.mishkin.redsecbot.application.event.StatsReadyPublisher;
 import com.mishkin.redsecbot.application.service.PlayerStatsHistoryService;
 import com.mishkin.redsecbot.discord.formatter.RedSecDiscordFormatter;
-import com.mishkin.redsecbot.discord.utils.ExceptionUtils;
+import com.mishkin.redsecbot.discord.reply.DiscordReplyRegistry;
 import com.mishkin.redsecbot.domain.model.RedSecStats;
-import com.mishkin.redsecbot.infrastructure.tracker.dto.in.player.TrackerSearchResultApiDto;
 import com.mishkin.redsecbot.infrastructure.tracker.client.TrackerGGPlayerSearchClient;
-import com.mishkin.redsecbot.enricherApi.in.DiscordReplyRegistry;
-import com.mishkin.redsecbot.enricherApi.out.StatsPipeline;
+import com.mishkin.redsecbot.infrastructure.tracker.dto.in.player.TrackerSearchResultApiDto;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -18,6 +19,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 /**
  * @author a.mishkin
@@ -25,30 +28,40 @@ import java.util.concurrent.Executor;
 @Component
 public class CheckCommandHandler {
 
+    Logger log = LoggerFactory.getLogger(CheckCommandHandler.class);
+
     private final TrackerGGPlayerSearchClient searchClient;
     private final PlayerStatsHistoryService statsHistoryService;
     private final RedSecDiscordFormatter formatter;
     private final PlayerSelectionStore selectionStore;
     private final Executor executor;
-    private final StatsPipeline statsPipeline;
+    private final StatsReadyPublisher statsReadyPublisher;
     private final DiscordReplyRegistry replyRegistry;
 
-    public CheckCommandHandler(TrackerGGPlayerSearchClient searchClient, PlayerStatsHistoryService statsHistoryService, RedSecDiscordFormatter formatter, PlayerSelectionStore selectionStore, Executor executor, StatsPipeline statsPipeline, DiscordReplyRegistry replyRegistry) {
+    public CheckCommandHandler(TrackerGGPlayerSearchClient searchClient, PlayerStatsHistoryService statsHistoryService, RedSecDiscordFormatter formatter, PlayerSelectionStore selectionStore, Executor executor, StatsReadyPublisher statsReadyPublisher, DiscordReplyRegistry replyRegistry) {
         this.searchClient = searchClient;
         this.statsHistoryService = statsHistoryService;
         this.formatter = formatter;
         this.selectionStore = selectionStore;
         this.executor = executor;
-        this.statsPipeline = statsPipeline;
+        this.statsReadyPublisher = statsReadyPublisher;
         this.replyRegistry = replyRegistry;
     }
 
     public void handle(SlashCommandInteractionEvent event) {
 
-        event.deferReply().queue();
+        event.deferReply(true).queue();
         String bfName = event.getOption("name").getAsString();
         String platform = event.getOption("platform").getAsString();
         long discordId = event.getUser().getIdLong();
+
+        AtomicBoolean replied = new AtomicBoolean(false);
+
+        Consumer<String> replyOnce = msg -> {
+            if (replied.compareAndSet(false, true)) {
+                event.getHook().sendMessage(msg).queue();
+            }
+        };
 
         CompletableFuture
                 .supplyAsync(() -> searchClient.searchPlayers(platform, bfName), executor)
@@ -87,7 +100,7 @@ public class CheckCommandHandler {
                                 }
                                 String correlationId = String.valueOf(UUID.randomUUID());
                                 replyRegistry.register(correlationId, event.getHook());
-                                statsPipeline.onStatsReady(statsOpt.get(), correlationId);
+                                statsReadyPublisher.onStatsReady(statsOpt.get(), correlationId);
 
                                 event.getHook()
                                         .sendMessageEmbeds(formatter.format(statsOpt.get()))
@@ -95,9 +108,8 @@ public class CheckCommandHandler {
                             });
                 })
                 .exceptionally(ex -> {
-                    event.getHook()
-                            .sendMessage("❌ " + ExceptionUtils.safeMessage(ex))
-                            .queue();
+                    log.error("Command failed", ex);
+                    replyOnce.accept("❌ Ошибка обработки");
                     return null;
                 });
     }

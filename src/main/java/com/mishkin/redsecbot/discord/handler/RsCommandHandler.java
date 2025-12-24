@@ -6,8 +6,8 @@ import com.mishkin.redsecbot.application.facade.RedSecStatsFacade;
 import com.mishkin.redsecbot.discord.utils.ExceptionUtils;
 import com.mishkin.redsecbot.domain.model.RedSecStats;
 import com.mishkin.redsecbot.infrastructure.postgres.entity.UserMappingEntity;
-import com.mishkin.redsecbot.enricherApi.in.DiscordReplyRegistry;
-import com.mishkin.redsecbot.enricherApi.out.StatsPipeline;
+import com.mishkin.redsecbot.discord.reply.DiscordReplyRegistry;
+import com.mishkin.redsecbot.application.event.StatsReadyPublisher;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -28,16 +28,16 @@ public class RsCommandHandler {
     private final RedSecDiscordFormatter formatter;
     @Qualifier("discordCommandExecutor")
     private final Executor executor;
-    private final StatsPipeline statsPipeline;
+    private final StatsReadyPublisher statsReadyPublisher;
     private final DiscordReplyRegistry replyRegistry;
 
     public RsCommandHandler(RedSecStatsFacade statsFacade, UserMappingService userMappingService,
-                            RedSecDiscordFormatter formatter, Executor executor, StatsPipeline statsPipeline, DiscordReplyRegistry replyRegistry) {
+                            RedSecDiscordFormatter formatter, Executor executor, StatsReadyPublisher statsReadyPublisher, DiscordReplyRegistry replyRegistry) {
         this.statsFacade = statsFacade;
         this.userMappingService = userMappingService;
         this.formatter = formatter;
         this.executor = executor;
-        this.statsPipeline = statsPipeline;
+        this.statsReadyPublisher = statsReadyPublisher;
         this.replyRegistry = replyRegistry;
     }
 
@@ -61,7 +61,7 @@ public class RsCommandHandler {
 
                     String correlationId = String.valueOf(UUID.randomUUID());
                     replyRegistry.register(correlationId, event.getHook());
-                    statsPipeline.onStatsReady(statsOpt.get(), correlationId);
+                    statsReadyPublisher.onStatsReady(statsOpt.get(), correlationId);
 
                     event.getHook()
                             .sendMessageEmbeds(
