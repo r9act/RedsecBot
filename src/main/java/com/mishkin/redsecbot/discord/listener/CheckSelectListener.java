@@ -1,8 +1,10 @@
 package com.mishkin.redsecbot.discord.listener;
 
 import com.mishkin.redsecbot.application.service.PlayerStatsHistoryService;
+import com.mishkin.redsecbot.domain.model.StatsWithSource;
 import com.mishkin.redsecbot.discord.formatter.RedSecDiscordFormatter;
 import com.mishkin.redsecbot.discord.handler.PlayerSelectionStore;
+import com.mishkin.redsecbot.domain.model.GameIdentity;
 import com.mishkin.redsecbot.domain.model.RedSecStats;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -41,21 +43,25 @@ public class CheckSelectListener extends ListenerAdapter {
 
         selectionStore.getSelected(discordId, selectedIdentifier)
                 .ifPresentOrElse(p -> {
-                    String platform = p.platformSlug();
-                    String playerKey = "bf:" + platform + ":" + p.platformUserIdentifier();
 
-                    Optional<RedSecStats> statsOpt = statsHistoryService
-                            .getRedSecStats(playerKey, p.platformSlug(), p.platformUserIdentifier());
+                    Optional<StatsWithSource> resultOpt = statsHistoryService
+                            .getRedSecStats(new GameIdentity(p.platformSlug(), p.platformUserIdentifier()));
 
-                    if (statsOpt.isEmpty()) {
-                        event.getHook().sendMessage("❌ Игрок не играл в REDSEC").setEphemeral(true).queue();
+                    if (resultOpt.isEmpty()) {
+                        event.getHook()
+                                .sendMessage("❌ Игрок не играл в REDSEC")
+                                .setEphemeral(true)
+                                .queue();
                         return;
                     }
+
+                    StatsWithSource result = resultOpt.get();
+                    RedSecStats stats = result.stats();
 
                     selectionStore.clear(discordId);
 
                     event.getHook()
-                            .editOriginalEmbeds(formatter.format(statsOpt.get()))
+                            .editOriginalEmbeds(formatter.format(stats))
                             .setComponents() // убираем меню
                             .queue();
 

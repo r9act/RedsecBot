@@ -1,10 +1,11 @@
 package com.mishkin.redsecbot.application.facade;
 
-import com.mishkin.redsecbot.domain.model.RedSecStats;
+import com.mishkin.redsecbot.domain.model.GameIdentity;
+import com.mishkin.redsecbot.domain.model.StatsWithSource;
 
 import java.util.Optional;
 
 public interface RedSecStatsFacade {
-    Optional<RedSecStats> getForPlayer(String playerKey, String platformSlug, String platformUserIdentifier);
+    Optional<StatsWithSource> getForPlayer(GameIdentity gameIdentity);
 }
 

@@ -2,6 +2,9 @@ package com.mishkin.redsecbot.application.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mishkin.redsecbot.domain.model.StatsSource;
+import com.mishkin.redsecbot.domain.model.StatsWithSource;
+import com.mishkin.redsecbot.domain.model.GameIdentity;
 import com.mishkin.redsecbot.infrastructure.cassandra.PlayerStatsHistoryRow;
 import com.mishkin.redsecbot.infrastructure.cassandra.repo.PlayerStatsHistoryRepository;
 import com.mishkin.redsecbot.infrastructure.cassandra.StatsConstants;
@@ -49,13 +52,23 @@ public class PlayerStatsHistoryServiceImpl implements PlayerStatsHistoryService 
      * @return
      */
     @Override
-    public Optional<RedSecStats> getRedSecStats(String playerKey, String platformSlug, String platformUserIdentifier) {
+    public Optional<StatsWithSource> getRedSecStats(GameIdentity gameIdentity) {
         Instant now = Instant.now(clock);
+
+        String playerKey = gameIdentity.toPlayerKey();
 
         return repository.findLatest(playerKey, STATS_TYPE)
                 .filter(row -> !isExpired(row.fetchedAt(), now))
-                .map(this::deserialize)
-                .or(() -> refreshAndStore(playerKey, platformSlug, platformUserIdentifier, now));
+                .map(row -> new StatsWithSource(
+                        deserialize(row),
+                        StatsSource.CACHE
+                ))
+                .or(() -> refreshAndStore(playerKey, gameIdentity.platformSlug(), gameIdentity.platformUserIdentifier(), now)
+                        .map(stats -> new StatsWithSource(
+                                stats,
+                                StatsSource.REFRESH
+                        ))
+                );
     }
 
     private boolean isExpired(Instant fetchedAt, Instant now) {

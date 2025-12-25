@@ -2,7 +2,6 @@ package com.mishkin.redsecbot.infrastructure.cassandra.repo;
 
 import com.mishkin.redsecbot.infrastructure.cassandra.PlayerStatsHistoryRow;
 
-import java.util.List;
 import java.util.Optional;
 
 public interface PlayerStatsHistoryRepository {

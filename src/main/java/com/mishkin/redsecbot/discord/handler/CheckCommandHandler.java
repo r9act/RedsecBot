@@ -2,8 +2,10 @@ package com.mishkin.redsecbot.discord.handler;
 
 import com.mishkin.redsecbot.application.event.StatsReadyPublisher;
 import com.mishkin.redsecbot.application.service.PlayerStatsHistoryService;
+import com.mishkin.redsecbot.domain.model.StatsWithSource;
 import com.mishkin.redsecbot.discord.formatter.RedSecDiscordFormatter;
 import com.mishkin.redsecbot.discord.reply.DiscordReplyRegistry;
+import com.mishkin.redsecbot.domain.model.GameIdentity;
 import com.mishkin.redsecbot.domain.model.RedSecStats;
 import com.mishkin.redsecbot.infrastructure.tracker.client.TrackerGGPlayerSearchClient;
 import com.mishkin.redsecbot.infrastructure.tracker.dto.in.player.TrackerSearchResultApiDto;
@@ -115,8 +117,8 @@ public class CheckCommandHandler {
     }
 
     private Optional<RedSecStats> fetchStatsForSelected(String platform, TrackerSearchResultApiDto p) {
-        String playerKey = "bf:" + platform + ":" + p.platformUserIdentifier();
-        return statsHistoryService.getRedSecStats(playerKey, p.platformSlug(), p.platformUserIdentifier());
+        return statsHistoryService.getRedSecStats(new GameIdentity(p.platformSlug(), p.platformUserIdentifier()))
+                .map(StatsWithSource::stats);
     }
 
     private StringSelectMenu buildSelectMenu(List<TrackerSearchResultApiDto> players) {

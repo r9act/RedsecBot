@@ -1,6 +1,7 @@
 package com.mishkin.redsecbot.application.service;
 
-import com.mishkin.redsecbot.domain.model.RedSecStats;
+import com.mishkin.redsecbot.domain.model.GameIdentity;
+import com.mishkin.redsecbot.domain.model.StatsWithSource;
 
 import java.util.Optional;
 
@@ -9,11 +10,7 @@ import java.util.Optional;
  */
 public interface PlayerStatsHistoryService {
 
-    Optional<RedSecStats> getRedSecStats(
-            String playerKey,
-            String platformSlug,
-            String platformUserIdentifier
-    );
+    Optional<StatsWithSource> getRedSecStats(GameIdentity gameIdentity);
 }
 
 
