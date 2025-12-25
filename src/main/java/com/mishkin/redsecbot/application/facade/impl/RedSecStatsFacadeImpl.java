@@ -1,8 +1,9 @@
 package com.mishkin.redsecbot.application.facade.impl;
 
-import com.mishkin.redsecbot.application.service.PlayerStatsHistoryService;
-import com.mishkin.redsecbot.domain.model.RedSecStats;
 import com.mishkin.redsecbot.application.facade.RedSecStatsFacade;
+import com.mishkin.redsecbot.application.service.PlayerStatsHistoryService;
+import com.mishkin.redsecbot.domain.model.GameIdentity;
+import com.mishkin.redsecbot.domain.model.StatsWithSource;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -20,8 +21,8 @@ public class RedSecStatsFacadeImpl implements RedSecStatsFacade {
     }
 
     @Override
-    public Optional<RedSecStats> getForPlayer(String playerKey, String platformSlug, String platformUserIdentifier) {
-        return statsHistoryService.getRedSecStats(playerKey, platformSlug, platformUserIdentifier);
+    public Optional<StatsWithSource> getForPlayer(GameIdentity gameIdentity) {
+        return statsHistoryService.getRedSecStats(gameIdentity);
     }
 }
 

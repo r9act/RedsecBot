@@ -1,8 +1,9 @@
-package com.mishkin.redsecbot.infrastructure.cassandra.repo;
+package com.mishkin.redsecbot.infrastructure.cassandra.repo.impl;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.*;
 import com.mishkin.redsecbot.infrastructure.cassandra.PlayerStatsHistoryRow;
+import com.mishkin.redsecbot.infrastructure.cassandra.repo.PlayerStatsHistoryRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
