@@ -1,12 +1,5 @@
 package com.mishkin.redsecbot.discord.handler;
 
-import com.mishkin.redsecbot.application.event.StatsReadyPublisher;
-import com.mishkin.redsecbot.application.service.PlayerStatsHistoryService;
-import com.mishkin.redsecbot.domain.model.StatsWithSource;
-import com.mishkin.redsecbot.discord.formatter.RedSecDiscordFormatter;
-import com.mishkin.redsecbot.discord.reply.DiscordReplyRegistry;
-import com.mishkin.redsecbot.domain.model.GameIdentity;
-import com.mishkin.redsecbot.domain.model.RedSecStats;
 import com.mishkin.redsecbot.infrastructure.tracker.client.TrackerGGPlayerSearchClient;
 import com.mishkin.redsecbot.infrastructure.tracker.dto.in.player.TrackerSearchResultApiDto;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -17,8 +10,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -33,21 +24,13 @@ public class CheckCommandHandler {
     Logger log = LoggerFactory.getLogger(CheckCommandHandler.class);
 
     private final TrackerGGPlayerSearchClient searchClient;
-    private final PlayerStatsHistoryService statsHistoryService;
-    private final RedSecDiscordFormatter formatter;
     private final PlayerSelectionStore selectionStore;
     private final Executor executor;
-    private final StatsReadyPublisher statsReadyPublisher;
-    private final DiscordReplyRegistry replyRegistry;
 
-    public CheckCommandHandler(TrackerGGPlayerSearchClient searchClient, PlayerStatsHistoryService statsHistoryService, RedSecDiscordFormatter formatter, PlayerSelectionStore selectionStore, Executor executor, StatsReadyPublisher statsReadyPublisher, DiscordReplyRegistry replyRegistry) {
+    public CheckCommandHandler(TrackerGGPlayerSearchClient searchClient, PlayerSelectionStore selectionStore, Executor executor) {
         this.searchClient = searchClient;
-        this.statsHistoryService = statsHistoryService;
-        this.formatter = formatter;
         this.selectionStore = selectionStore;
         this.executor = executor;
-        this.statsReadyPublisher = statsReadyPublisher;
-        this.replyRegistry = replyRegistry;
     }
 
     public void handle(SlashCommandInteractionEvent event) {
@@ -65,8 +48,7 @@ public class CheckCommandHandler {
             }
         };
 
-        CompletableFuture
-                .supplyAsync(() -> searchClient.searchPlayers(platform, bfName), executor)
+        CompletableFuture.supplyAsync(() -> searchClient.searchPlayers(platform, bfName), executor)
                 .thenCompose(players -> {
 
                     if (players.isEmpty()) {
@@ -86,39 +68,23 @@ public class CheckCommandHandler {
 
                         return CompletableFuture.completedFuture(null);
                     }
+                    //TODO если 1 вариант - делаем пока в выпадающем для упрощения, потом будет autocomplete
+                    TrackerSearchResultApiDto p = players.get(0);
+                    selectionStore.put(discordId, List.of(p));
 
-                    var p = players.get(0);
+                    event.getHook()
+                            .sendMessage("Найден профиль:")
+                            .addActionRow(buildSelectMenu(List.of(p)))
+                            .queue();
 
-                    return CompletableFuture
-                            .supplyAsync(() -> fetchStatsForSelected(platform, p), executor)
-                            .thenAccept(statsOpt -> {
+                    return CompletableFuture.completedFuture(null);
 
-                                if (statsOpt.isEmpty()) {
-                                    event.getHook()
-                                            .sendMessage("❌ Игрок не играл в REDSEC")
-                                            .setEphemeral(true)
-                                            .queue();
-                                    return;
-                                }
-                                String correlationId = String.valueOf(UUID.randomUUID());
-                                replyRegistry.register(correlationId, event.getHook());
-                                statsReadyPublisher.onStatsReady(statsOpt.get(), correlationId);
-
-                                event.getHook()
-                                        .sendMessageEmbeds(formatter.format(statsOpt.get()))
-                                        .queue();
-                            });
                 })
                 .exceptionally(ex -> {
-                    log.error("Command failed", ex);
+                    log.error("/check command failed", ex);
                     replyOnce.accept("❌ Ошибка обработки");
                     return null;
                 });
-    }
-
-    private Optional<RedSecStats> fetchStatsForSelected(String platform, TrackerSearchResultApiDto p) {
-        return statsHistoryService.getRedSecStats(new GameIdentity(p.platformSlug(), p.platformUserIdentifier()))
-                .map(StatsWithSource::stats);
     }
 
     private StringSelectMenu buildSelectMenu(List<TrackerSearchResultApiDto> players) {

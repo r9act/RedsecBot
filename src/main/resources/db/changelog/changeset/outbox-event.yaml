@@ -1,0 +1,129 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-outbox-event-table
+      author: a.mishkin
+      changes:
+
+        # =========================
+        # OUTBOX TABLE
+        # =========================
+        # Таблица outbox_event — журнал намерений системы
+        # по доставке доменных событий во внешние системы (Kafka).
+        #
+        # Используется для реализации Transactional Outbox:
+        # - запись события атомарна с бизнес-транзакцией
+        # - доставка происходит асинхронно
+        # - гарантируется at-least-once delivery
+        #
+        - createTable:
+            tableName: outbox_event
+            remarks: >
+              Transactional outbox table.
+              Stores events that must be reliably published to external systems (Kafka).
+              Acts as a delivery log, not a domain model.
+
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  remarks: >
+                    Technical identifier of the outbox record.
+                    Used for retries, status updates and internal bookkeeping.
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: aggregate_type
+                  type: TEXT
+                  remarks: >
+                    Logical type of aggregate or business context
+                    that produced this event (e.g. 'StatsInteraction').
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: aggregate_id
+                  type: UUID
+                  remarks: >
+                    Identifier of the business action or interaction
+                    that produced this event.
+                    In this system equals to correlationId and
+                    links outbox event with StatsInteraction.
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: topic
+                  type: TEXT
+                  remarks: >
+                    Kafka topic name where this event must be published
+                    (e.g. 'stats.ready').
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: kafka_key
+                  type: TEXT
+                  remarks: >
+                    Kafka message key.
+                    Used for partitioning and must match original producer semantics
+                    (platformUserHandle).
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: event_version
+                  type: INT
+                  remarks: >
+                    Version of the event payload contract.
+                    Allows backward-compatible evolution of events.
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: payload
+                  type: JSONB
+                  remarks: >
+                    Serialized EventEnvelope in JSON format.
+                    Stored as-is to allow 1:1 Kafka message replay.
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: status
+                  type: TEXT
+                  remarks: >
+                    Delivery status of the outbox event.
+                    Possible values: NEW, PUBLISHED, FAILED.
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  remarks: >
+                    Timestamp when the outbox record was created.
+                    Represents the moment when the delivery intention was fixed.
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: published_at
+                  type: TIMESTAMP
+                  remarks: >
+                    Timestamp when the event was successfully published
+                    to the external system (Kafka).
+                    NULL means the event has not been delivered yet.
+
+        # =========================
+        # INDEXES
+        # =========================
+        - createIndex:
+            tableName: outbox_event
+            indexName: idx_outbox_status
+            remarks: >
+              Index to efficiently select events pending for delivery.
+            columns:
+              - column:
+                  name: status

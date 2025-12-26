@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: create-discord-user-mapping
-      author: you
+      author: a.mishkin
       changes:
         - createTable:
             tableName: discord_user_mapping

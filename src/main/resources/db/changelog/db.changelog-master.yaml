@@ -1,3 +1,5 @@
 databaseChangeLog:
   - include:
       file: db/changelog/changeset/discord-user-mapping.yaml
+  - include:
+      file: db/changelog/changeset/outbox-event.yaml
