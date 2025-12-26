@@ -73,3 +73,7 @@ management:
     web:
       exposure:
         include: health,metrics,prometheus
+
+outbox:
+  publish:
+    delay-ms: 800
